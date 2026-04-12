@@ -412,7 +412,7 @@ elif pagina == "Por modelo":
                .reset_index()
                .rename(columns={"am_modelocl":"Modelo","Clientes_unicos":"Clientes únicos"})
                .sort_values("Compras", ascending=False))
-    st.datafDSe(resumen, use_container_width=True, hide_index=True)
+    st.dataframe(resumen, use_container_width=True, hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # POR PROVINCIA
@@ -464,7 +464,7 @@ elif pagina == "Por provincia":
                    .groupby("cl_dir_provincia").first().reset_index()
                    .rename(columns={"cl_dir_provincia":"Provincia",
                                      "am_modelocl":"Modelo más comprado","n":"Compras"}))
-        st.datafDSe(top_mod, use_container_width=True, hide_index=True)
+        st.dataframe(top_mod, use_container_width=True, hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # EMPRESAS
