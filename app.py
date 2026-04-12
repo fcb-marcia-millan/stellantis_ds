@@ -5,7 +5,7 @@ import plotly.express as px
 
 st.set_page_config(
     page_title="DS - Base de Clientes",
-    page_icon="https://logos-world.net/wp-content/uploads/2021/08/DS-Automobiles-Logo-700x394.png",
+    page_icon="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRUaAhlo_92ePBpGF_drYR0e6q5mfA3ksI9bg&s",
     layout="wide",
     initial_sidebar_state="expanded",
 )
