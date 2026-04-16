@@ -146,22 +146,23 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("#### Filtros")
 
-    modelos_opts = ["Todos"] + sorted(df_raw["am_modelocl"].unique().tolist())
-    modelo_sel = st.selectbox("Modelo", modelos_opts)
+    # Filtro de modelo - MULTISELECT
+    modelos_opts = sorted(df_raw["am_modelocl"].unique().tolist())
+    modelo_sel = st.multiselect("Modelo", modelos_opts, default=modelos_opts)
 
+    # Filtro de provincia - MULTISELECT
     if "cl_dir_provincia" in df_raw.columns:
-        prov_opts = ["Todas"] + sorted(df_raw["cl_dir_provincia"].unique().tolist())
-        provincia_sel = st.selectbox("Provincia", prov_opts)
+        prov_opts = sorted(df_raw["cl_dir_provincia"].unique().tolist())
+        provincia_sel = st.multiselect("Provincia", prov_opts, default=prov_opts)
     else:
-        provincia_sel = "Todas"
+        provincia_sel = []
 
-    #tipo_sel = st.selectbox("Tipo de cliente", ["Todos", "Particular", "Corporativo"])
-
+    # Filtro de género - MULTISELECT
     if "Gender" in df_raw.columns:
-        gender_opts = ["Todos"] + sorted(df_raw["Gender"].unique().tolist())
-        gender_sel = st.selectbox("Género", gender_opts)
+        gender_opts = sorted(df_raw["Gender"].unique().tolist())
+        gender_sel = st.multiselect("Género", gender_opts, default=gender_opts)
     else:
-        gender_sel = "Todos"
+        gender_sel = []
 
     st.markdown("---")
     # Checkbox para activar/desactivar filtro temporal
@@ -178,7 +179,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("#### Vistas")
-    pagina = st.radio("", ["General", "Por modelo", "Por provincia","Género"],
+    pagina = st.radio("", ["General", "Por modelo", "Por provincia", "Género", "Empresas"],
                       label_visibility="collapsed")
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -189,13 +190,13 @@ with st.sidebar:
 # IMPORTANTE: NO aplicar filtro de Gender a df para preservar los "Sin dato" en tablas
 
 df = df_raw.copy()
-if modelo_sel != "Todos":
-    df = df[df["am_modelocl"] == modelo_sel]
-if provincia_sel != "Todas" and "cl_dir_provincia" in df.columns:
-    df = df[df["cl_dir_provincia"] == provincia_sel]
-# if tipo_sel != "Todos":
-#     df = df[df["tipo_cliente"] == tipo_sel]
-# NO aplicar gender_sel a df — preservar todos los registros incluyendo "Sin dato"
+
+# Aplicar filtros múltiples
+if modelo_sel and len(modelo_sel) > 0:
+    df = df[df["am_modelocl"].isin(modelo_sel)]
+    
+if provincia_sel and len(provincia_sel) > 0 and "cl_dir_provincia" in df.columns:
+    df = df[df["cl_dir_provincia"].isin(provincia_sel)]
 
 # df_time: copia de df pero CON filtro temporal (solo si checkbox está activo)
 # Se usa ÚNICAMENTE en gráficos que muestren tiempo (por año, por mes, tendencias)
@@ -207,8 +208,8 @@ if usar_filtro_temporal and len(fecha_rango) == 2 and "vp_f_compra" in df_time.c
 
 # df_gen_filtered: SOLO para la vista de Género, aplicar el filtro de Gender aquí
 df_gen_filtered = df.copy()
-if gender_sel != "Todos" and "Gender" in df_gen_filtered.columns:
-    df_gen_filtered = df_gen_filtered[df_gen_filtered["Gender"] == gender_sel]
+if gender_sel and len(gender_sel) > 0 and "Gender" in df_gen_filtered.columns:
+    df_gen_filtered = df_gen_filtered[df_gen_filtered["Gender"].isin(gender_sel)]
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -326,21 +327,6 @@ if pagina == "General":
         ))
         fig3.update_layout(**layout(160, mr=12))
         st.plotly_chart(fig3, use_container_width=True, config=NO_MB)
-
-    # st.markdown('<p class="section-title">Registro de clientes</p>', unsafe_allow_html=True)
-    # # Usar df (sin filtro temporal) para tabla resumen
-    # cols_show = [c for c in ["cl_apellido","cl_nombre","cl_numero_doc","am_modelocl",
-    #                           "cl_dir_localidad","cl_dir_provincia","empresa","vp_f_compra","Gender"]
-    #              if c in df.columns]
-    # rename_map = {
-    #     "cl_apellido":"Apellido","cl_nombre":"Nombre","cl_numero_doc":"N° Doc",
-    #     "am_modelocl":"Modelo","cl_dir_localidad":"Localidad",
-    #     "cl_dir_provincia":"Provincia","empresa":"Empresa","vp_f_compra":"F. Compra","Gender":"Género"
-    # }
-    # tabla = df[cols_show].rename(columns=rename_map).head(500)
-    # if "F. Compra" in tabla.columns:
-    #     tabla["F. Compra"] = tabla["F. Compra"].dt.strftime("%d/%m/%Y")
-    # st.datafDSe(tabla, use_container_width=True, hide_index=True, height=320)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # POR MODELO
@@ -467,85 +453,6 @@ elif pagina == "Por provincia":
         st.dataframe(top_mod, use_container_width=True, hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# EMPRESAS
-# ══════════════════════════════════════════════════════════════════════════════
-# elif pagina == "Empresas":
-
-#     df_corp = df[pd.to_numeric(df["empresa"], errors="coerce") == 1].copy()
-#     total_corp   = df_corp["cl_k_cliente"].nunique() if "cl_k_cliente" in df_corp.columns else len(df_corp)
-#     compras_corp = len(df_corp)
-
-#     st.markdown(f"""
-#     <div class="kpi-grid">
-#       <div class="kpi-card">
-#         <div class="kpi-label">Clientes de empresa</div>
-#         <div class="kpi-value" style="color:#fade2a">{total_corp:,}</div>
-#         <div class="kpi-sub">Suma de DNI's únicos registrados (Con empresa=1)</div>
-#         <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#fade2a"></div></div>
-#       </div>
-#       <div class="kpi-card">
-#         <div class="kpi-label">Total compras empresas</div>
-#         <div class="kpi-value" style="color:#fade2a">{compras_corp:,}</div>
-#         <div class="kpi-sub">Todos los registros (Con empresa=1)</div>
-#         <div class="kpi-bar"><div class="kpi-bar-fill" style="width:75%;background:#fade2a"></div></div>
-#       </div>
-#       <div class="kpi-card">
-#         <div class="kpi-label">% sobre total</div>
-#         <div class="kpi-value" style="color:#fade2a">{round(compras_corp/len(df)*100,1) if len(df)>0 else 0}%</div>
-#         <div class="kpi-sub">Compras empresa / Total compras</div>
-#         <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{round(compras_corp/len(df)*100,1) if len(df)>0 else 0}%;background:#fade2a"></div></div>
-#       </div>
-#     </div>
-#     """, unsafe_allow_html=True)
-
-#     st.markdown("<br>", unsafe_allow_html=True)
-
-#     col1, col2 = st.columns(2, gap="medium")
-
-#     with col1:
-#         st.markdown('<p class="section-title">Modelos preferidos</p>', unsafe_allow_html=True)
-#         mc = df_corp.groupby("am_modelocl").size().reset_index(name="n").sort_values("n", ascending=False)
-#         bar_colors = ["#555570" if m == SIN_DATO else "#fade2a" for m in mc["am_modelocl"]]
-#         fig = go.Figure(go.Bar(
-#             x=mc["am_modelocl"].astype(str), y=mc["n"],
-#             marker_color=bar_colors, marker_line_width=0,
-#             text=mc["n"], textposition="outside",
-#             textfont=dict(size=10, color="#a0a0b8"),
-#         ))
-#         fig.update_layout(**layout(280, mr=12))
-#         fig.update_layout(xaxis=dict(type="category", gridcolor="#1e1e30", linecolor="#1e1e30"))
-#         st.plotly_chart(fig, use_container_width=True, config=NO_MB)
-
-#     with col2:
-#         if "cl_dir_provincia" in df_corp.columns:
-#             st.markdown('<p class="section-title">Por provincia</p>', unsafe_allow_html=True)
-#             pc = (df_corp.groupby("cl_dir_provincia")["cl_k_cliente"]
-#                   .nunique().reset_index(name="n").sort_values("n", ascending=True).tail(8))
-#             bar_colors2 = ["#555570" if p == SIN_DATO else "#c8a800" for p in pc["cl_dir_provincia"]]
-#             fig2 = go.Figure(go.Bar(
-#                 x=pc["n"], y=pc["cl_dir_provincia"], orientation="h",
-#                 marker_color=bar_colors2, marker_line_width=0,
-#                 text=pc["n"], textposition="outside",
-#                 textfont=dict(size=10, color="#a0a0b8"),
-#             ))
-#             fig2.update_layout(**layout(280, mr=80))
-#             st.plotly_chart(fig2, use_container_width=True, config=NO_MB)
-
-#     st.markdown('<p class="section-title">Registro de clientes de empresa</p>', unsafe_allow_html=True)
-#     cols_show = [c for c in ["cl_apellido","cl_nombre","cl_numero_doc","am_modelocl",
-#                               "cl_dir_localidad","cl_dir_provincia","vp_f_compra","Gender"]
-#                  if c in df_corp.columns]
-#     rename_map = {
-#         "cl_apellido":"Apellido","cl_nombre":"Nombre","cl_numero_doc":"N° Doc",
-#         "am_modelocl":"Modelo","cl_dir_localidad":"Localidad",
-#         "cl_dir_provincia":"Provincia","vp_f_compra":"F. Compra","Gender":"Género"
-#     }
-#     tabla = df_corp[cols_show].rename(columns=rename_map).head(500)
-#     if "F. Compra" in tabla.columns:
-#         tabla["F. Compra"] = tabla["F. Compra"].dt.strftime("%d/%m/%Y")
-#     st.datafDSe(tabla, use_container_width=True, hide_index=True, height=320)
-
-# ══════════════════════════════════════════════════════════════════════════════
 # GÉNERO
 # ══════════════════════════════════════════════════════════════════════════════
 elif pagina == "Género":
@@ -644,20 +551,117 @@ elif pagina == "Género":
                                legend=dict(font=dict(size=11), orientation="h", y=-0.3))
             st.plotly_chart(fig4, use_container_width=True, config=NO_MB)
 
-        # st.markdown('<p class="section-title">Registro por género</p>', unsafe_allow_html=True)
-        # # Usar df_gen (sin filtro temporal) para tabla resumen
-        # cols_show = [c for c in ["cl_apellido","cl_nombre","cl_numero_doc","Gender",
-        #                           "am_modelocl","cl_dir_localidad","cl_dir_provincia","vp_f_compra"]
-        #              if c in df_gen.columns]
-        # rename_map = {
-        #     "cl_apellido":"Apellido","cl_nombre":"Nombre","cl_numero_doc":"N° Doc",
-        #     "Gender":"Género","am_modelocl":"Modelo","cl_dir_localidad":"Localidad",
-        #     "cl_dir_provincia":"Provincia","vp_f_compra":"F. Compra"
-        # }
-        # tabla = df_gen[cols_show].rename(columns=rename_map).head(500)
-        # if "F. Compra" in tabla.columns:
-        #     tabla["F. Compra"] = tabla["F. Compra"].dt.strftime("%d/%m/%Y")
-        # st.datafDSe(tabla, use_container_width=True, hide_index=True, height=320)
+# ══════════════════════════════════════════════════════════════════════════════
+# EMPRESAS
+# ══════════════════════════════════════════════════════════════════════════════
+elif pagina == "Empresas":
+
+    if "empresa" not in df_raw.columns:
+        st.warning("No se encontró la columna 'empresa' en tus datos.")
+    else:
+        # IMPORTANTE: Para todos los cálculos de empresa, usar df_raw (SIN filtros aplicados)
+        # excepto para gráficos temporales que usan df_time
+        
+        # Registros con empresa=1 en df_raw (sin filtros)
+        df_corp_raw = df_raw[pd.to_numeric(df_raw["empresa"], errors="coerce") == 1].copy()
+        
+        # Registros con empresa=1 en df (CON filtros aplicados de modelo/provincia)
+        df_corp = df[pd.to_numeric(df["empresa"], errors="coerce") == 1].copy()
+        
+        # Clientes únicos empresa (con filtros)
+        total_clientes_corp = df_corp["cl_k_cliente"].nunique() if "cl_k_cliente" in df_corp.columns else 0
+        
+        # Registros corporativos (suma de 1 en empresa) - con filtros
+        registros_corp = len(df_corp)
+        
+        # Total de registros en df_raw (SIN filtros)
+        total_registros_raw = len(df_raw)
+        
+        # % sobre total = registros_corp / total_registros_raw
+        pct_sobre_total = round(registros_corp / total_registros_raw * 100, 1) if total_registros_raw > 0 else 0
+
+        st.markdown(f"""
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Clientes empresa (únicos)</div>
+            <div class="kpi-value" style="color:#fade2a">{total_clientes_corp:,}</div>
+            <div class="kpi-sub">DNI únicos con empresa=1</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#fade2a"></div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Registros corporativos</div>
+            <div class="kpi-value" style="color:#fade2a">{registros_corp:,}</div>
+            <div class="kpi-sub">Suma de empresa=1 (con filtros)</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:75%;background:#fade2a"></div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">% sobre total</div>
+            <div class="kpi-value" style="color:#fade2a">{pct_sobre_total}%</div>
+            <div class="kpi-sub">Registros empresa / Total global</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{pct_sobre_total}%;background:#fade2a"></div></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2, gap="medium")
+
+        with col1:
+            st.markdown('<p class="section-title">Modelos preferidos (empresa)</p>', unsafe_allow_html=True)
+            mc = df_corp.groupby("am_modelocl").size().reset_index(name="n").sort_values("n", ascending=False)
+            bar_colors = ["#555570" if m == SIN_DATO else "#fade2a" for m in mc["am_modelocl"]]
+            fig = go.Figure(go.Bar(
+                x=mc["am_modelocl"].astype(str), y=mc["n"],
+                marker_color=bar_colors, marker_line_width=0,
+                text=mc["n"], textposition="outside",
+                textfont=dict(size=10, color="#a0a0b8"),
+            ))
+            fig.update_layout(**layout(280, mr=12, mt=36))
+            fig.update_layout(xaxis=dict(type="category", gridcolor="#1e1e30", linecolor="#1e1e30"))
+            st.plotly_chart(fig, use_container_width=True, config=NO_MB)
+
+        with col2:
+            if "cl_dir_provincia" in df_corp.columns:
+                st.markdown('<p class="section-title">Clientes empresa por provincia</p>', unsafe_allow_html=True)
+                pc = (df_corp.groupby("cl_dir_provincia")["cl_k_cliente"]
+                      .nunique().reset_index(name="n").sort_values("n", ascending=True).tail(8))
+                bar_colors2 = ["#555570" if p == SIN_DATO else "#c8a800" for p in pc["cl_dir_provincia"]]
+                fig2 = go.Figure(go.Bar(
+                    x=pc["n"], y=pc["cl_dir_provincia"], orientation="h",
+                    marker_color=bar_colors2, marker_line_width=0,
+                    text=pc["n"], textposition="outside",
+                    textfont=dict(size=10, color="#a0a0b8"),
+                ))
+                fig2.update_layout(**layout(280, mr=80, mt=36))
+                st.plotly_chart(fig2, use_container_width=True, config=NO_MB)
+
+        if "mes_compra" in df_corp.columns:
+            st.markdown('<p class="section-title">Tendencia de compras corporativas</p>', unsafe_allow_html=True)
+            # Para gráficos temporales, usar df_time pero filtrado por empresa=1
+            df_corp_time = df_time[pd.to_numeric(df_time["empresa"], errors="coerce") == 1].copy()
+            trend = (df_corp_time.groupby("mes_compra")
+                     .size().reset_index(name="n")
+                     .sort_values("mes_compra"))
+            if not trend.empty:
+                fig3 = go.Figure(go.Bar(
+                    x=trend["mes_compra"], y=trend["n"],
+                    marker_color="#fade2a", marker_line_width=0,
+                    text=trend["n"], textposition="outside",
+                    textfont=dict(size=10, color="#a0a0b8"),
+                ))
+                fig3.update_layout(**layout(240, mr=12, mb=30))
+                st.plotly_chart(fig3, use_container_width=True, config=NO_MB)
+
+        st.markdown('<p class="section-title">Resumen por modelo (empresa)</p>', unsafe_allow_html=True)
+        resumen_corp = (df_corp.groupby("am_modelocl", dropna=False)
+                        .agg(Compras=("am_modelocl","size"),
+                             Clientes_unicos=("cl_k_cliente","nunique"),
+                             Provincias=("cl_dir_provincia","nunique"))
+                        .reset_index()
+                        .rename(columns={"am_modelocl":"Modelo","Clientes_unicos":"Clientes únicos"})
+                        .sort_values("Compras", ascending=False))
+        st.dataframe(resumen_corp, use_container_width=True, hide_index=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
