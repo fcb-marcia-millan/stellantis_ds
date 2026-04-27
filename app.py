@@ -591,7 +591,7 @@ elif pagina == "Empresas":
           <div class="kpi-card">
             <div class="kpi-label">Empresas</div>
             <div class="kpi-value" style="color:#fade2a">{registros_corp:,}</div>
-            <div class="kpi-sub">Suma de empresa=1</div>
+            <div class="kpi-sub">Empresa=1</div>
             <div class="kpi-bar"><div class="kpi-bar-fill" style="width:75%;background:#fade2a"></div></div>
           </div>
           <div class="kpi-card">
